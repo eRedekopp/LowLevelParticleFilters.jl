@@ -105,10 +105,10 @@ KalmanFilteringSolution(f,u,y,x,xt,R,Rt,ll,e) = KalmanFilteringSolution(f,u,y,x,
         series = reduce(hcat, measurement_oop(kf).(sol.x, sol.u, Ref(kf.p), timevec))'
         for i = 1:ny
             @series begin
-                label -->"$(name)ŷ$(i)(t|t-1)" 
+                label -->"$(name)ŷ$(i)(t|t-1)"
                 subplot --> i + (nx*(plotx || plotxt) + nu*plotu)
                 linestyle --> :dash
-                
+
                 timevec, series[:, i]
             end
         end
@@ -235,12 +235,12 @@ td_getargs(f,x,w,u,y,d::Int=1) = f,x,w,u,y,d
         N,T = size(x)
         D = length(x[1])
         P = length(y[1])
-    
+
         if sum(w) ≉ T
             w = exp.(w)
             w ./= sum(w, dims=1)
         end
-    
+
         label := ""
         markercolor --> :cyan
         if d <= D
@@ -267,7 +267,7 @@ td_getargs(f,x,w,u,y,d::Int=1) = f,x,w,u,y,d
                 seriestype := :scatter
                 timevec, getindex.(y,d)
             end
-    
+
         end
     end
 end

@@ -1,4 +1,3 @@
-
 abstract type AbstractParticleFilter <: AbstractFilter end
 
 function parameters(f::AbstractFilter)
@@ -107,7 +106,7 @@ Base.@propagate_inbounds function measurement_equation!(pf::ParticleFilter, u, y
     #     end
     # else
         for i = 1:num_particles(pf)
-            w[i] += extended_logpdf(d, y-g(x[i],u,p,t))
+            w[i] += extended_logpdf(d, y-g(x[i],u,p,t, i))
         end
     # end
     w
@@ -122,11 +121,11 @@ Base.@propagate_inbounds function propagate_particles!(pf::ParticleFilter,u,j::V
     noise = zeros(D)
     if d === nothing
         for i = eachindex(x)
-            x[i] =  f(xp[j[i]], u, p, t)
+            x[i] =  f(xp[j[i]], u, p, t, i)
         end
     else
         for i = eachindex(x)
-            x[i] =  f(xp[j[i]], u, p, t) + VecT(rand!(pf.rng, d, noise))
+            x[i] =  f(xp[j[i]], u, p, t, i) + VecT(rand!(pf.rng, d, noise))
         end
     end
     x
@@ -219,7 +218,7 @@ Base.@propagate_inbounds function measurement_equation!(pf::AbstractParticleFilt
     any(ismissing.(y)) && return w
     x = particles(pf)
     @batch for i = 1:num_particles(pf)
-        @inbounds w[i] += g(x[i], u, y, p, t)
+        @inbounds w[i] += g(x[i], u, y, p, t, i)
     end
     w
 end
@@ -232,11 +231,11 @@ Base.@propagate_inbounds function propagate_particles!(pf::AdvancedParticleFilte
     x,xp = s.x, s.xprev
     if pf.threads
         @batch for i = eachindex(x)
-            @inbounds x[i] = f(xp[j[i]], u, p, t, noise) # TODO: lots of allocations here
+            @inbounds x[i] = f(xp[j[i]], u, p, t, i, noise) # TODO: lots of allocations here
         end
     else
         for i = eachindex(x)
-            @inbounds x[i] = f(xp[j[i]], u, p, t, noise) 
+            @inbounds x[i] = f(xp[j[i]], u, p, t, i, noise)
         end
     end
     x
@@ -247,11 +246,11 @@ Base.@propagate_inbounds function propagate_particles!(pf::AbstractParticleFilte
     x,xp = particles(pf), state(pf).xprev
     if pf.threads
         @batch for i = eachindex(x)
-            @inbounds x[i] = f(xp[i], u, p, t)
+            @inbounds x[i] = f(xp[i], u, p, t, i)
         end
     else
         for i = eachindex(x)
-            @inbounds x[i] = f(xp[i], u, p, t)
+            @inbounds x[i] = f(xp[i], u, p, t, i)
         end
     end
     x
@@ -262,11 +261,11 @@ Base.@propagate_inbounds function propagate_particles!(pf::AbstractParticleFilte
     x,xp = particles(pf), state(pf).xprev
     if pf.threads
         @batch for i = eachindex(x)
-            @inbounds x[i] = f(xp[i], u, p, t, noise)
+            @inbounds x[i] = f(xp[i], u, p, t, i, noise)
         end
     else
         for i = eachindex(x)
-            @inbounds x[i] = f(xp[i], u, p, t, noise)
+            @inbounds x[i] = f(xp[i], u, p, t, i, noise)
         end
     end
     x

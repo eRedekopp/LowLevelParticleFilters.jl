@@ -1,4 +1,3 @@
-
 """
     xT,RT,ll = smooth(sol, kf)
     xT,RT,ll = smooth(kf::KalmanFilter, u::Vector, y::Vector, p=parameters(kf))
@@ -132,7 +131,7 @@ end
 
 returns function θ -> p(y|θ)p(θ)
 """
-function log_likelihood_fun(filter_from_parameters,priors::AbstractVector,u,y, p)
+function log_likelihood_fun(filter_from_parameters,priors::AbstractVector,u,y,p)
     n = numargs(filter_from_parameters)
     pf = nothing
     function (θ)
@@ -142,8 +141,8 @@ function log_likelihood_fun(filter_from_parameters,priors::AbstractVector,u,y, p
         isfinite(ll) || return eltype(θ)(-Inf)
         pf = filter_from_parameters(θ,pf)
         try
-            return ll + loglik(pf,u,y,p)
-        catch
+            return ll + loglik(pf,u,y)
+        catch e
             return eltype(θ)(-Inf)
         end
 
@@ -177,22 +176,31 @@ histogram(exp.(thetalls[:,1:2]), layout=3)
 plot!(thetalls[:,3], subplot=3) # if threaded call, log likelihoods are in the last column
 ```
 """
-function metropolis(ll, R, θ₀, draw = naive_sampler(θ₀))
+function metropolis(ll, R, θ₀, draw=naive_sampler(θ₀))
     params    = Vector{typeof(θ₀)}(undef,R)
     lls       = Vector{Float64}(undef,R)
     params[1] = θ₀
     lls[1]    = ll(θ₀)
+    accepted  = 0
+    @info "Beginning MCMC iterations."
     for i = 2:R
+        @info "Running MCMC iteration $i."
         θ = draw(params[i-1])
         lli = ll(θ)
+        @debug "Last llikelihood: $(lls[i-1]), Cur. llikelihood: $(lli))"
+        @debug "Prob jump $(exp(lli-lls[i-1]))"
         if rand() < exp(lli-lls[i-1])
+            @debug "Jumped!"
             params[i] = θ
             lls[i] = lli
+            accepted += 1
         else
+            @debug "Didn't jump."
             params[i] = params[i-1]
             lls[i] = lls[i-1]
         end
     end
+    acc_rate = accepted / (R - 1)
     params, lls
 end
 
